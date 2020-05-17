@@ -1,6 +1,16 @@
 # packer-vagrant-bionic64-rails
 
 ## Description
+This repo privides you template for building vagrant box for virtualbox provider. Some box details:
+- OS Ubuntu 18.04 Bionic
+- Ruby 2.6.3
+- Rails 6.0.0
+- Yarn 1.22.4
+
+## Requirements
+- vitualbox installed
+- vagrant installed
+- packer installed
 
 ## How to use
 - clone repo locally
