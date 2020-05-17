@@ -1,0 +1,123 @@
+{
+  "variables": {
+    "name": "berchev/rails",
+    "build_name": "rails",
+    "build_cpu_cores": "2",
+    "build_memory": "2048",
+    "disk_size": "40960",
+    "headless": "false",
+    "iso_checksum": "e2ecdace33c939527cbc9e8d23576381c493b071107207d2040af72595f8990b",
+    "iso_checksum_type": "sha256",
+    "iso_url": "http://cdimage.ubuntu.com/ubuntu/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso",
+    "ssh_username": "vagrant",
+    "ssh_password": "vagrant"
+  },
+  "builders": [
+    {
+      "name": "{{ user `build_name` }}-vbox",
+      "vm_name": "{{ user `build_name` }}-vbox",
+      "boot_command": [
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " netcfg/get_domain=vm<wait>",
+        " netcfg/get_hostname={{ user `build_name` }}<wait>",
+        " grub-installer/bootdev=/dev/sda<wait>",
+        " apic=off <wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<wait>",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "5s",
+      "disk_size": "{{user `disk_size`}}",
+      "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+      "guest_os_type": "Ubuntu_64",
+      "headless": "{{user `headless`}}",
+      "http_directory": "http",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "iso_checksum_type": "{{user `iso_checksum_type`}}",
+      "iso_url": "{{user `iso_url`}}",
+      "shutdown_command": "echo 'vagrant' | sudo -S poweroff",
+      "ssh_password": "{{user `ssh_username`}}",
+      "ssh_username": "{{user `ssh_password`}}",
+      "ssh_wait_timeout": "20m",
+      "type": "virtualbox-iso",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--memory",
+          "{{user `build_memory`}}"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--cpus",
+          "{{user `build_cpu_cores`}}"
+        ]
+      ],
+      "virtualbox_version_file": ".vbox_version"
+    }
+  ],
+  "provisioners": [
+    {
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -H -E -S bash '{{.Path}}'",
+      "expect_disconnect": true,
+      "script": "scripts/packages_with_sudo.sh",
+      "type": "shell"
+    },
+    {
+      "expect_disconnect": true,
+      "script": "scripts/packages_without_sudo.sh",
+      "type": "shell"
+    },
+    {
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -H -E -S bash '{{.Path}}'",
+      "script": "scripts/vagrant.sh",
+      "type": "shell"
+    },
+    {
+      "only": [
+        "{{ user `build_name` }}-vbox"
+      ],
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -H -E -S bash '{{.Path}}'",
+      "scripts": [
+        "scripts/virtualbox.sh",
+        "scripts/virtualbox_cleanup.sh"
+      ],
+      "expect_disconnect": true,
+      "type": "shell"
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "vagrant",
+        "keep_input_artifact": true,
+        "output": "{{.BuildName}}.box"
+      },
+      {
+        "type": "shell-local",
+        "only": [
+          "{{ user `build_name` }}-vbox"
+        ],
+        "inline": [
+          "vagrant box add --name {{ user `build_name` }} --provider virtualbox {{ user `build_name` }}-vbox.box -f"
+        ]
+      }
+    ]
+  ]
+}
